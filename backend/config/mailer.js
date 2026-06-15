@@ -11,6 +11,11 @@ const EMAIL_PASS = normalizeEnv(process.env.EMAIL_PASS);
 const MAIL_PROVIDER = (normalizeEnv(process.env.MAIL_PROVIDER) || 'gmail').toLowerCase();
 const SMTP_USERNAME = normalizeEnv(process.env.SMTP_USER || process.env.SMTP_USERNAME || EMAIL_USER);
 const SMTP_PASSWORD = normalizeEnv(process.env.SMTP_PASS || process.env.SMTP_PASSWORD || EMAIL_PASS);
+const RESEND_API_KEY = normalizeEnv(process.env.RESEND_API_KEY);
+const BREVO_SMTP_USER = normalizeEnv(process.env.BREVO_SMTP_USER || process.env.BREVO_SMTP_USERNAME);
+const BREVO_SMTP_PASS = normalizeEnv(process.env.BREVO_SMTP_PASS || process.env.BREVO_SMTP_PASSWORD);
+const MAILGUN_SMTP_LOGIN = normalizeEnv(process.env.MAILGUN_SMTP_LOGIN || process.env.MAILGUN_SMTP_USERNAME);
+const MAILGUN_SMTP_PASSWORD = normalizeEnv(process.env.MAILGUN_SMTP_PASSWORD || process.env.MAILGUN_SMTP_PASS);
 const MAIL_FROM = normalizeEnv(process.env.MAIL_FROM || EMAIL_USER || 'startinnosolutions@gmail.com');
 const MAIL_FROM_NAME = normalizeEnv(process.env.MAIL_FROM_NAME || 'StartInno Solutions');
 const SMTP_HOST = normalizeEnv(process.env.SMTP_HOST || 'smtp.gmail.com');
@@ -476,7 +481,7 @@ const createTransporter = () => {
     });
   }
 
-  if (provider === 'resend' && process.env.RESEND_API_KEY) {
+  if (provider === 'resend' && RESEND_API_KEY) {
     console.log('[mailer] using resend smtp transport');
     return nodemailer.createTransport({
       ...baseTransportConfig,
@@ -486,7 +491,39 @@ const createTransporter = () => {
       requireTLS: true,
       auth: {
         user: 'resend',
-        pass: process.env.RESEND_API_KEY
+        pass: RESEND_API_KEY
+      }
+    });
+  }
+
+  if (provider === 'brevo' && (BREVO_SMTP_USER || SMTP_USERNAME || EMAIL_USER) && (BREVO_SMTP_PASS || SMTP_PASSWORD || EMAIL_PASS)) {
+    console.log('[mailer] using brevo smtp transport');
+    return nodemailer.createTransport({
+      ...baseTransportConfig,
+      host: smtpHost || 'smtp-relay.brevo.com',
+      port: smtpPort || 587,
+      secure: smtpSecure || false,
+      requireTLS: true,
+      authMethod: 'PLAIN',
+      auth: {
+        user: BREVO_SMTP_USER || SMTP_USERNAME || EMAIL_USER,
+        pass: BREVO_SMTP_PASS || SMTP_PASSWORD || EMAIL_PASS
+      }
+    });
+  }
+
+  if (provider === 'mailgun' && MAILGUN_SMTP_LOGIN && MAILGUN_SMTP_PASSWORD) {
+    console.log('[mailer] using mailgun smtp transport');
+    return nodemailer.createTransport({
+      ...baseTransportConfig,
+      host: 'smtp.mailgun.org',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      authMethod: 'PLAIN',
+      auth: {
+        user: MAILGUN_SMTP_LOGIN,
+        pass: MAILGUN_SMTP_PASSWORD
       }
     });
   }
@@ -524,7 +561,13 @@ console.log('[mailer] SMTP user configured:', Boolean(SMTP_USERNAME || EMAIL_USE
 console.log('[mailer] SMTP password configured:', Boolean(SMTP_PASSWORD || EMAIL_PASS));
 console.log('[mailer] SMTP user:', maskEmail(SMTP_USERNAME || EMAIL_USER));
 console.log('[mailer] mail provider:', MAIL_PROVIDER);
-console.log('[mailer] SMTP transport:', process.env.SMTP_HOST ? `${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587}` : (MAIL_PROVIDER === 'sendgrid' ? 'sendgrid' : 'gmail/smtp.gmail.com'));
+console.log('[mailer] SMTP transport:', process.env.SMTP_HOST ? `${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587}` : (
+  MAIL_PROVIDER === 'sendgrid' ? 'sendgrid' :
+  MAIL_PROVIDER === 'resend' ? 'resend/smtp.resend.com' :
+  MAIL_PROVIDER === 'brevo' ? 'brevo/smtp-relay.brevo.com' :
+  MAIL_PROVIDER === 'mailgun' ? 'mailgun/smtp.mailgun.org' :
+  'gmail/smtp.gmail.com'
+));
 console.log('[mailer] SMTP credentials source:', SMTP_USERNAME === EMAIL_USER && (SMTP_PASSWORD === EMAIL_PASS || !SMTP_PASSWORD) ? 'EMAIL_USER/EMAIL_PASS' : 'SMTP_USER/SMTP_PASS');
 console.log('[mailer] SMTP family:', transporter.options.family || 4);
 console.log('[mailer] Gmail app password guidance:', SMTP_HOST.includes('gmail') ? 'Ensure EMAIL_PASS or SMTP_PASS is a Gmail app password, not your normal Gmail password.' : 'Using custom SMTP provider.');

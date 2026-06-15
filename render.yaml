@@ -16,35 +16,39 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        value: mongodb+srv://99230040961_db_user:USZG1PnkSBLz235q@cluster0.9dj5wqe.mongodb.net/?appName=Cluster0
+        value: mongodb+srv://<username>:<password>@<cluster-host>/<database>?retryWrites=true&w=majority
       - key: JWT_SECRET
-        value: Avinash2005
+        value: replace-with-strong-secret
       - key: EMAIL_USER
         value: startinnosolutions@gmail.com
       - key: EMAIL_PASS
-        value: qwzbsjdjbhejdkji
+        value: replace-with-email-app-password
       - key: SMTP_USER
         value: startinnosolutions@gmail.com
       - key: SMTP_PASS
-        value: qwzbsjdjbhejdkji
+        value: replace-with-brevo-smtp-pass
       - key: SMTP_HOST
-        value: smtp.gmail.com
+        value: smtp-relay.brevo.com
       - key: SMTP_PORT
         value: 587
       - key: SMTP_SECURE
         value: false
       - key: MAIL_PROVIDER
-        value: gmail
+        value: brevo
+      - key: BREVO_SMTP_USER
+        value: startinnosolutions@gmail.com
+      - key: BREVO_SMTP_PASS
+        value: replace-with-brevo-smtp-pass
       - key: MAIL_FROM
         value: startinnosolutions@gmail.com
       - key: MAIL_FROM_NAME
         value: StartInno Solutions
       - key: CLOUDINARY_CLOUD_NAME
-        value: dh8whjclb
+        value: replace-with-cloudinary-cloud-name
       - key: CLOUDINARY_API_KEY
-        value: 241659117931119
+        value: replace-with-cloudinary-api-key
       - key: CLOUDINARY_API_SECRET
-        value: McVIfVmlHp1-ctwCwhooFoibOMo
+        value: replace-with-cloudinary-api-secret
       - key: FRONTEND_URL
         value: https://startinno-registration-1.onrender.com
       - key: CORS_ORIGIN
