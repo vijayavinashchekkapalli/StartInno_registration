@@ -1,4 +1,5 @@
 const path = require('path');
+const dns = require('dns');
 const dotenv = require('dotenv');
 const nodemailer = require('nodemailer');
 
@@ -429,6 +430,20 @@ const buildTeamDetailsTable = ({ teamName, leaderName, email, contact, stream, y
   `;
 };
 
+const ipv4Lookup = (hostname, options, callback) => {
+  const lookupOptions = {
+    all: false,
+    family: 4,
+    ...options
+  };
+
+  dns.lookup(hostname, lookupOptions, (error, address, family) => {
+    if (callback) {
+      callback(error, address, family);
+    }
+  });
+};
+
 const createTransporter = () => {
   const provider = MAIL_PROVIDER;
   const smtpHost = normalizeEnv(process.env.SMTP_HOST || '');
@@ -442,7 +457,8 @@ const createTransporter = () => {
     connectionTimeout: 20000,
     greetingTimeout: 10000,
     socketTimeout: 30000,
-    family: 4
+    family: 4,
+    lookup: ipv4Lookup
   };
 
   if (provider === 'sendgrid' && process.env.SENDGRID_API_KEY) {
