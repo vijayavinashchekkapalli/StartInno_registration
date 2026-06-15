@@ -261,6 +261,9 @@ exports.forgotUsername = async (req, res) => {
         requestedEmail,
         recipientEmail: user.email,
         message: mailError.message,
+        code: mailError.code,
+        response: mailError.response,
+        statusCode: mailError.statusCode,
         stack: mailError.stack
       });
 
@@ -334,6 +337,9 @@ exports.forgotPassword = async (req, res) => {
         requestedEmail,
         recipientEmail: user.email,
         message: mailError.message,
+        code: mailError.code,
+        response: mailError.response,
+        statusCode: mailError.statusCode,
         stack: mailError.stack
       });
 

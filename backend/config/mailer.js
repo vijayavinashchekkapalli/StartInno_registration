@@ -13,8 +13,8 @@ const SMTP_PASSWORD = normalizeEnv(process.env.SMTP_PASS || process.env.SMTP_PAS
 const MAIL_FROM = normalizeEnv(process.env.MAIL_FROM || EMAIL_USER || 'startinnosolutions@gmail.com');
 const MAIL_FROM_NAME = normalizeEnv(process.env.MAIL_FROM_NAME || 'StartInno Solutions');
 const SMTP_HOST = normalizeEnv(process.env.SMTP_HOST || 'smtp.gmail.com');
-const SMTP_PORT = Number(normalizeEnv(process.env.SMTP_PORT || '465'));
-const SMTP_SECURE = String(normalizeEnv(process.env.SMTP_SECURE || 'true')).toLowerCase() === 'true';
+const SMTP_PORT = Number(normalizeEnv(process.env.SMTP_PORT || '587'));
+const SMTP_SECURE = String(normalizeEnv(process.env.SMTP_SECURE || 'false')).toLowerCase() === 'true';
 
 const mailQueue = [];
 let isMailQueueProcessing = false;
@@ -431,9 +431,9 @@ const buildTeamDetailsTable = ({ teamName, leaderName, email, contact, stream, y
 
 const createTransporter = () => {
   const provider = MAIL_PROVIDER;
-  const smtpHost = process.env.SMTP_HOST || '';
-  const smtpPort = Number(process.env.SMTP_PORT || 0);
-  const smtpSecure = String(process.env.SMTP_SECURE || 'true').toLowerCase() === 'true';
+  const smtpHost = normalizeEnv(process.env.SMTP_HOST || '');
+  const smtpPort = Number(normalizeEnv(process.env.SMTP_PORT || '587'));
+  const smtpSecure = String(normalizeEnv(process.env.SMTP_SECURE || 'false')).toLowerCase() === 'true';
 
   const baseTransportConfig = {
     pool: true,
@@ -441,7 +441,8 @@ const createTransporter = () => {
     maxMessages: 20,
     connectionTimeout: 20000,
     greetingTimeout: 10000,
-    socketTimeout: 30000
+    socketTimeout: 30000,
+    family: 4
   };
 
   if (provider === 'sendgrid' && process.env.SENDGRID_API_KEY) {
@@ -478,7 +479,7 @@ const createTransporter = () => {
     return nodemailer.createTransport({
       ...baseTransportConfig,
       host: smtpHost,
-      port: smtpPort || 465,
+      port: smtpPort || 587,
       secure: smtpSecure,
       requireTLS: true,
       auth: {
@@ -490,10 +491,10 @@ const createTransporter = () => {
 
   return nodemailer.createTransport({
     ...baseTransportConfig,
-    service: 'gmail',
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: SMTP_USERNAME,
       pass: SMTP_PASSWORD
@@ -507,8 +508,9 @@ console.log('[mailer] SMTP user configured:', Boolean(SMTP_USERNAME || EMAIL_USE
 console.log('[mailer] SMTP password configured:', Boolean(SMTP_PASSWORD || EMAIL_PASS));
 console.log('[mailer] SMTP user:', maskEmail(SMTP_USERNAME || EMAIL_USER));
 console.log('[mailer] mail provider:', MAIL_PROVIDER);
-console.log('[mailer] SMTP transport:', process.env.SMTP_HOST ? `${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 465}` : (MAIL_PROVIDER === 'sendgrid' ? 'sendgrid' : 'gmail/smtp.gmail.com'));
+console.log('[mailer] SMTP transport:', process.env.SMTP_HOST ? `${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587}` : (MAIL_PROVIDER === 'sendgrid' ? 'sendgrid' : 'gmail/smtp.gmail.com'));
 console.log('[mailer] SMTP credentials source:', SMTP_USERNAME === EMAIL_USER && (SMTP_PASSWORD === EMAIL_PASS || !SMTP_PASSWORD) ? 'EMAIL_USER/EMAIL_PASS' : 'SMTP_USER/SMTP_PASS');
+console.log('[mailer] SMTP family:', transporter.options.family || 4);
 console.log('[mailer] Gmail app password guidance:', SMTP_HOST.includes('gmail') ? 'Ensure EMAIL_PASS or SMTP_PASS is a Gmail app password, not your normal Gmail password.' : 'Using custom SMTP provider.');
 console.log('[mailer] frontend base URL:', normalizeFrontendBaseUrl(process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_URL));
 
@@ -524,12 +526,23 @@ const verifyTransporter = async () => {
     return false;
   }
 
+  const transportDetails = {
+    host: transporter.options?.host || SMTP_HOST || 'smtp.gmail.com',
+    port: transporter.options?.port || SMTP_PORT || 587,
+    secure: transporter.options?.secure ?? SMTP_SECURE,
+    family: transporter.options?.family || 4,
+    authUser: maskEmail(SMTP_USERNAME || EMAIL_USER)
+  };
+
+  console.log('[mailer] verifying SMTP connectivity', transportDetails);
+
   try {
     await transporter.verify();
-    console.log('[mailer] SMTP connection verified successfully');
+    console.log('[mailer] SMTP connection verified successfully', transportDetails);
     return true;
   } catch (error) {
     console.error('[mailer] SMTP verify failed:', {
+      ...transportDetails,
       message: error.message,
       code: error.code,
       response: error.response,
@@ -580,6 +593,11 @@ const sendMail = async (mailOptions, { waitForDelivery = false, queueLabel = 'ma
       console.error('[mailer] sendMail failed', {
         to: recipientList,
         subject: effectiveOptions.subject,
+        from: effectiveOptions.from,
+        host: transporter.options?.host || SMTP_HOST || 'smtp.gmail.com',
+        port: transporter.options?.port || SMTP_PORT || 587,
+        secure: transporter.options?.secure ?? SMTP_SECURE,
+        family: transporter.options?.family || 4,
         message: error.message,
         code: error.code,
         response: error.response,
@@ -606,6 +624,11 @@ const sendMail = async (mailOptions, { waitForDelivery = false, queueLabel = 'ma
       console.error('[mailer] queued sendMail failed', {
         to: recipientList,
         subject: effectiveOptions.subject,
+        from: effectiveOptions.from,
+        host: transporter.options?.host || SMTP_HOST || 'smtp.gmail.com',
+        port: transporter.options?.port || SMTP_PORT || 587,
+        secure: transporter.options?.secure ?? SMTP_SECURE,
+        family: transporter.options?.family || 4,
         message: error.message,
         code: error.code,
         response: error.response,
